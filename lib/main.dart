@@ -17,17 +17,17 @@ class MyApp extends StatelessWidget {
       title: 'Save Reels',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.grey[100],
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black,
+        colorScheme: const ColorScheme.dark(
+          primary: Colors.white,
+          surface: Color(0xFF121212),
         ),
+        textTheme: const TextTheme(
+          titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          bodyMedium: TextStyle(color: Color(0xFFA8A8A8)),
+        ),
+        useMaterial3: true,
       ),
       home: const HomeScreen(),
     );
@@ -52,7 +52,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadReels();
 
-    // Listen to shared text (Stream)
     _intentSub = ReceiveSharingIntent.instance.getMediaStream().listen((value) {
       if (value.isNotEmpty) {
         for (var file in value) {
@@ -61,7 +60,6 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
 
-    // Handle shared text (Initial)
     ReceiveSharingIntent.instance.getInitialMedia().then((value) {
       if (value.isNotEmpty) {
         for (var file in value) {
@@ -80,7 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _processSharedUrl(String url) async {
-    // Basic extraction of caption from URL if possible, or just use URL
     String caption = "Reel from ${url.split('/').skip(2).firstOrNull ?? 'Instagram'}";
     await _reelService.saveReel(url, caption: caption);
     _loadReels();
@@ -101,42 +98,39 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            // Search Header
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Save Reels",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
-                    ),
+            // Instagram-Style Search Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF262626),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  cursorColor: Colors.grey,
+                  decoration: const InputDecoration(
+                    hintText: "Search saved reels",
+                    hintStyle: TextStyle(color: Color(0xFF8E8E8E), fontSize: 16),
+                    prefixIcon: Icon(Icons.search, color: Color(0xFF8E8E8E), size: 20),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 13),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _searchController,
-                    onChanged: _onSearchChanged,
-                    decoration: const InputDecoration(
-                      hintText: "Search captions, creators, tags...",
-                      prefixIcon: Icon(Icons.search, color: Colors.grey),
-                    ),
-                  ),
-                ],
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                ),
               ),
             ),
             
-            // Reel List
+            // Reel Grid
             Expanded(
               child: _reels.isEmpty && _searchController.text.isEmpty
                   ? _buildEmptyState()
-                  : _buildReelList(),
+                  : _buildReelGrid(),
             ),
           ],
         ),
@@ -151,21 +145,32 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.share_outlined, size: 64, color: Colors.grey[300]),
-            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: const Icon(Icons.movie_creation_outlined, size: 48, color: Colors.white),
+            ),
+            const SizedBox(height: 32),
             const Text(
-              "“Share Reels from Instagram to find them later.”",
+              "Your saved Reels will appear here",
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 18,
-                color: Colors.black54,
-                fontWeight: FontWeight.w500,
+                fontSize: 20,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             const Text(
-              "Your saved reels will appear here instantly.",
-              style: TextStyle(color: Colors.grey),
+              "Share from Instagram to get started",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF8E8E8E),
+              ),
             ),
           ],
         ),
@@ -173,45 +178,66 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildReelList() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+  Widget _buildReelGrid() {
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 1), // Minimal grid gap
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 1,
+        mainAxisSpacing: 1,
+        childAspectRatio: 0.65, // Classic Reels vertical aspect
+      ),
       itemCount: _reels.length,
       itemBuilder: (context, index) {
         final reel = _reels[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(12),
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 60,
-                height: 60,
-                color: Colors.grey[200],
+        return GestureDetector(
+          onTap: () => _navigateToDetail(reel),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Thumbnail
+              Container(
+                color: const Color(0xFF121212),
                 child: reel['thumbnail'] != null
                     ? Image.network(reel['thumbnail'], fit: BoxFit.cover)
-                    : const Icon(Icons.movie_creation_outlined, color: Colors.grey),
+                    : const Center(child: Icon(Icons.movie_creation_outlined, color: Colors.white24)),
               ),
-            ),
-            title: Text(
-              reel['caption'] ?? "No Caption",
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                reel['creator'] ?? "Unknown Creator",
-                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              // Subtle Gradient Overlay
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.4),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-            onTap: () => _navigateToDetail(reel),
+              // Creator Name / Icon
+              Positioned(
+                bottom: 8,
+                left: 8,
+                right: 8,
+                child: Row(
+                  children: [
+                    const Icon(Icons.play_arrow_outlined, color: Colors.white, size: 14),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        reel['creator'] ?? "Original",
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -233,83 +259,102 @@ class DetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Reel Info")),
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        title: const Text("Reels", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        centerTitle: false,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Large Preview
             AspectRatio(
-              aspectRatio: 1,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: reel['thumbnail'] != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: Image.network(reel['thumbnail'], fit: BoxFit.cover),
-                      )
-                    : const Icon(Icons.movie_creation_outlined, size: 80, color: Colors.grey),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              reel['creator'] ?? "Unknown Creator",
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Saved on ${reel['timestamp'].toString().split('T').first}",
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              "Caption",
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              reel['caption'] ?? "No caption available",
-              style: const TextStyle(fontSize: 16, height: 1.5),
-            ),
-            if (reel['tags'] != null && reel['tags'].toString().isNotEmpty) ...[
-              const SizedBox(height: 24),
-              const Text(
-                "Tags",
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                children: reel['tags']
-                    .toString()
-                    .split(' ')
-                    .map((tag) => Chip(
-                          label: Text(tag),
-                          backgroundColor: Colors.grey[100],
-                          side: BorderSide.none,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ))
-                    .toList(),
-              ),
-            ],
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {}, // Future: Open in Instagram
-                icon: const Icon(Icons.open_in_new),
-                label: const Text("View on Instagram"),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              aspectRatio: 0.8,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(
+                    color: const Color(0xFF121212),
+                    child: reel['thumbnail'] != null
+                        ? Image.network(reel['thumbnail'], fit: BoxFit.cover)
+                        : const Icon(Icons.movie_creation_outlined, size: 80, color: Colors.white24),
                   ),
-                ),
+                  Positioned(
+                    bottom: 20,
+                    left: 20,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          reel['creator'] ?? "Unknown Creator",
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Interaction & Info
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    reel['caption'] ?? "No caption available",
+                    style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.white),
+                  ),
+                  if (reel['tags'] != null && reel['tags'].toString().isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: reel['tags']
+                          .toString()
+                          .split(' ')
+                          .map((tag) => Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF262626),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  tag,
+                                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                                ),
+                              ))
+                          .toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  Text(
+                    "Saved on ${reel['timestamp'].toString().split('T').first}",
+                    style: const TextStyle(color: Color(0xFF8E8E8E), fontSize: 12),
+                  ),
+                  const SizedBox(height: 40),
+                  // Open In IG Button
+                  GestureDetector(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFF262626)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          "View on Instagram",
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
