@@ -98,17 +98,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black, // Near-black background
       body: SafeArea(
         child: Column(
           children: [
-            // Instagram-Style Search Header
+            // Instagram-Style Pill Search Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: Container(
-                height: 48,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF262626),
-                  borderRadius: BorderRadius.circular(10),
+                  color: const Color(0xFF262626), // Subtle gray background
+                  borderRadius: BorderRadius.circular(22), // Pill-style
                 ),
                 child: TextField(
                   controller: _searchController,
@@ -116,21 +117,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   cursorColor: Colors.grey,
                   decoration: const InputDecoration(
                     hintText: "Search saved reels",
-                    hintStyle: TextStyle(color: Color(0xFF8E8E8E), fontSize: 16),
-                    prefixIcon: Icon(Icons.search, color: Color(0xFF8E8E8E), size: 20),
+                    hintStyle: TextStyle(color: Color(0xFF8E8E8E), fontSize: 15),
+                    prefixIcon: Icon(Icons.search, color: Color(0xFF8E8E8E), size: 18),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 13),
+                    contentPadding: EdgeInsets.symmetric(vertical: 11),
                   ),
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: const TextStyle(color: Colors.white, fontSize: 15),
                 ),
               ),
             ),
             
-            // Reel Grid
+            // Reel Grid with Smooth Transition
             Expanded(
-              child: _reels.isEmpty && _searchController.text.isEmpty
-                  ? _buildEmptyState()
-                  : _buildReelGrid(),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _reels.isEmpty && _searchController.text.isEmpty
+                    ? _buildEmptyState()
+                    : _buildReelGrid(),
+              ),
             ),
           ],
         ),
@@ -140,30 +144,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildEmptyState() {
     return Center(
+      key: const ValueKey('empty'),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: const Icon(Icons.movie_creation_outlined, size: 48, color: Colors.white),
+            // Centered thin stroke icon
+            const Icon(
+              Icons.movie_filter_outlined,
+              size: 80,
+              color: Color(0xFF262626),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             const Text(
               "Your saved Reels will appear here",
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 color: Colors.white,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             const Text(
               "Share from Instagram to get started",
               textAlign: TextAlign.center,
@@ -180,64 +183,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildReelGrid() {
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 1), // Minimal grid gap
+      key: const ValueKey('grid'),
+      padding: const EdgeInsets.all(1), // Tight spacing
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         crossAxisSpacing: 1,
         mainAxisSpacing: 1,
-        childAspectRatio: 0.65, // Classic Reels vertical aspect
+        childAspectRatio: 1.0, // Square thumbnails
       ),
       itemCount: _reels.length,
       itemBuilder: (context, index) {
         final reel = _reels[index];
         return GestureDetector(
           onTap: () => _navigateToDetail(reel),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Thumbnail
-              Container(
-                color: const Color(0xFF121212),
-                child: reel['thumbnail'] != null
-                    ? Image.network(reel['thumbnail'], fit: BoxFit.cover)
-                    : const Center(child: Icon(Icons.movie_creation_outlined, color: Colors.white24)),
-              ),
-              // Subtle Gradient Overlay
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.4),
-                      ],
-                    ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.circular(4), // Subtle rounded corners
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: reel['thumbnail'] != null
+                ? Image.network(reel['thumbnail'], fit: BoxFit.cover)
+                : const Center(
+                    child: Icon(Icons.movie_creation_outlined, color: Colors.white10),
                   ),
-                ),
-              ),
-              // Creator Name / Icon
-              Positioned(
-                bottom: 8,
-                left: 8,
-                right: 8,
-                child: Row(
-                  children: [
-                    const Icon(Icons.play_arrow_outlined, color: Colors.white, size: 14),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        reel['creator'] ?? "Original",
-                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
         );
       },
